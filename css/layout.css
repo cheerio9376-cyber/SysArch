@@ -1,0 +1,330 @@
+/* css/layout.css — Sidebar + Navbar layout for CCS Sit-In student pages */
+/* Depends on css/style.css for :root variables */
+
+/* ===========================
+   TOP NAVBAR
+   =========================== */
+.top-navbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 64px;
+    background: var(--purple);
+    z-index: 200;
+    box-shadow: 0 2px 16px rgba(90,61,130,0.25);
+}
+.top-navbar-inner {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    padding: 0 20px;
+    gap: 12px;
+}
+
+/* Brand */
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: #fff;
+}
+.brand-logo {
+    width: 36px; height: 36px;
+    object-fit: contain;
+}
+.brand-name {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #fff;
+    display: none;
+}
+@media (min-width: 768px) { .brand-name { display: inline; } }
+
+/* Right controls */
+.navbar-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.icon-btn {
+    width: 36px; height: 36px;
+    background: rgba(255,255,255,0.12);
+    border: none;
+    border-radius: 10px;
+    color: rgba(255,255,255,0.85);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.2s;
+    position: relative;
+}
+.icon-btn:hover { background: rgba(255,255,255,0.22); }
+.notif-dot {
+    position: absolute;
+    top: 5px; right: 5px;
+    min-width: 16px; height: 16px;
+    background: #e74c3c;
+    color: #fff;
+    border-radius: 20px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    border: 2px solid var(--purple);
+    padding: 0 3px;
+}
+
+/* Profile trigger */
+.profile-trigger {
+    display: flex; align-items: center; gap: 8px;
+    background: rgba(255,255,255,0.12);
+    border: none;
+    border-radius: 10px;
+    padding: 4px 10px 4px 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.profile-trigger::after { border-color: rgba(255,255,255,0.7) transparent transparent; }
+.profile-trigger:hover { background: rgba(255,255,255,0.22); }
+.nav-avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(255,255,255,0.3);
+}
+.nav-username { font-size: 0.875rem; color: rgba(255,255,255,0.9); font-weight: 500; }
+
+/* Navbar dropdown */
+.nav-dropdown {
+    min-width: 240px;
+    border-radius: 14px;
+    border: 1px solid rgba(90,61,130,0.12);
+    padding: 8px;
+    margin-top: 6px !important;
+}
+.dropdown-header-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 8px 12px;
+}
+.dropdown-avatar {
+    width: 44px; height: 44px;
+    border-radius: 50%; object-fit: cover;
+    border: 2px solid var(--purple);
+}
+.nav-dropdown .dropdown-item {
+    border-radius: 8px;
+    font-size: 0.875rem;
+    padding: 8px 12px;
+}
+.nav-dropdown .dropdown-item:hover { background: var(--purple-soft); color: var(--purple); }
+.nav-dropdown .dropdown-item.text-danger:hover { background: #fdf2f2; }
+
+/* ===========================
+   SIDEBAR
+   =========================== */
+:root { --sidebar-w: 240px; --navbar-h: 64px; }
+
+.sidebar {
+    position: fixed;
+    top: var(--navbar-h);
+    left: 0;
+    width: var(--sidebar-w);
+    height: calc(100vh - var(--navbar-h));
+    background: #fff;
+    border-right: 1px solid rgba(90,61,130,0.1);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    z-index: 150;
+    transition: transform 0.3s ease;
+}
+
+/* Sidebar profile */
+.sidebar-profile {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 14px;
+    border-bottom: 1px solid rgba(90,61,130,0.08);
+    margin-bottom: 4px;
+}
+.sidebar-avatar {
+    width: 42px; height: 42px;
+    border-radius: 50%; object-fit: cover;
+    border: 2px solid var(--purple-soft);
+}
+.sidebar-name { font-size: 0.85rem; font-weight: 600; color: #333; line-height: 1.2; }
+.sidebar-sub  { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+
+/* Nav links */
+.sidebar-nav { flex: 1; padding: 4px 10px; }
+.sidebar-section-label {
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    padding: 10px 6px 4px;
+    margin-top: 4px;
+}
+.sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    border-radius: 10px;
+    color: #555;
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background 0.15s, color 0.15s;
+    margin-bottom: 2px;
+    position: relative;
+}
+.sidebar-link i { font-size: 1rem; width: 18px; text-align: center; flex-shrink: 0; }
+.sidebar-link:hover { background: var(--purple-soft); color: var(--purple); }
+.sidebar-link.active {
+    background: var(--purple-soft);
+    color: var(--purple);
+    font-weight: 600;
+}
+.sidebar-link.active::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 20%; bottom: 20%;
+    width: 3px;
+    background: var(--purple);
+    border-radius: 0 3px 3px 0;
+    margin-left: -10px;
+}
+.sidebar-badge {
+    margin-left: auto;
+    background: var(--gold);
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 20px;
+    letter-spacing: 0.3px;
+}
+
+/* Footer */
+.sidebar-footer {
+    padding: 12px 10px;
+    border-top: 1px solid rgba(90,61,130,0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.session-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: #f8f9fa;
+}
+.session-status .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #ccc;
+    flex-shrink: 0;
+}
+.session-status.is-active .status-dot { background: #27ae60; animation: pulse-dot 1.5s infinite; }
+.session-status.is-active { background: #edfbf3; color: #155724; }
+@keyframes pulse-dot {
+    0%,100% { box-shadow: 0 0 0 0 rgba(39,174,96,0.4); }
+    50%      { box-shadow: 0 0 0 5px rgba(39,174,96,0); }
+}
+.sidebar-logout { color: #e74c3c !important; }
+.sidebar-logout:hover { background: #fdf2f2 !important; color: #c0392b !important; }
+
+/* Responsive: hide sidebar on mobile, slide in */
+@media (max-width: 991px) {
+    .sidebar { transform: translateX(-100%); }
+    .sidebar.open { transform: translateX(0); }
+}
+
+/* ===========================
+   MAIN CONTENT
+   =========================== */
+.main-content {
+    margin-left: var(--sidebar-w);
+    padding-top: var(--navbar-h);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+.page-content {
+    flex: 1;
+    padding: 24px 28px;
+}
+@media (max-width: 991px) {
+    .main-content { margin-left: 0; }
+    .page-content { padding: 16px; }
+}
+
+/* ===========================
+   PAGE HEADER
+   =========================== */
+.page-header {
+    margin-bottom: 22px;
+}
+.page-header h2 {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--purple);
+    margin: 0 0 2px;
+}
+.page-header p {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+/* ===========================
+   SHARED CARD
+   =========================== */
+.ccs-card {
+    background: #fff;
+    border-radius: 16px;
+    border: 1px solid rgba(90,61,130,0.08);
+    box-shadow: 0 4px 18px rgba(90,61,130,0.06);
+    padding: 20px 22px;
+    margin-bottom: 18px;
+}
+.ccs-card-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--purple);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+/* ===========================
+   FOOTER
+   =========================== */
+.main-footer {
+    background: var(--purple);
+    color: rgba(255,255,255,0.75);
+    text-align: center;
+    padding: 12px;
+    font-size: 0.78rem;
+    margin-left: 0;
+}
+
+/* ===========================
+   ANNOUNCEMENT CARD (modal)
+   =========================== */
+.announcement-card {
+    border-left: 4px solid var(--gold);
+    background: var(--purple-soft);
+    border-radius: 0 12px 12px 0;
+    padding: 12px 14px;
+}
+.announcement-card h6 { color: var(--purple); font-weight: 600; margin: 0 0 4px; }
+.announcement-card p  { font-size: 0.85rem; color: #555; margin: 0; }

@@ -1,0 +1,121 @@
+/* css/dashboard.css - Student Dashboard */
+body { padding-top: 70px; background: #f4efff; }
+
+.hero-card {
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 15px 40px rgba(90,61,130,0.12);
+    border: 1px solid rgba(90,61,130,0.08);
+    transition: transform 0.2s;
+}
+
+.sit-btn {
+    background: linear-gradient(135deg, #d4a017 0%, #f6d365 100%);
+    border: none;
+    border-radius: 14px;
+    padding: 14px 28px;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #fff;
+    box-shadow: 0 8px 24px rgba(212,160,23,0.4);
+    transition: all 0.3s;
+    width: 100%;
+}
+.sit-btn:hover { box-shadow: 0 14px 32px rgba(212,160,23,0.55); transform: translateY(-2px); color: #fff; }
+
+.end-btn {
+    background: linear-gradient(135deg, #c0392b 0%, #e74c3c 100%);
+    border: none;
+    border-radius: 14px;
+    padding: 14px 28px;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #fff;
+    width: 100%;
+    transition: all 0.3s;
+}
+.end-btn:hover { opacity: 0.9; transform: translateY(-2px); }
+
+.stat-card {
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 8px 24px rgba(90,61,130,0.10);
+    border: 1px solid rgba(90,61,130,0.08);
+    transition: transform 0.2s;
+}
+.stat-card:hover { transform: translateY(-6px); }
+
+.history-item {
+    background: #fff;
+    border-radius: 12px;
+    border-left: 4px solid #5a3d82;
+    box-shadow: 0 4px 12px rgba(90,61,130,0.08);
+    transition: transform 0.15s;
+}
+.history-item:hover { transform: translateX(3px); }
+
+.badge-custom {
+    background: linear-gradient(135deg, #5a3d82, #7b5fb3);
+    color: #fff;
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 0.78rem;
+}
+
+.timer { font-size: 2.2rem; font-weight: 700; color: #d4a017; font-variant-numeric: tabular-nums; }
+
+.navbar { background: #5a3d82 !important; }
+.navbar-brand { font-weight: 700; }
+.dropdown-item.active, .dropdown-item:active { background: #5a3d82; }
+
+@media (max-width: 768px) {
+    body { padding-top: 65px; }
+    .sit-btn, .end-btn { padding: 12px 20px; }
+}
+
+#chatbox {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 320px;
+    height: 420px;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    font-family: Arial;
+    z-index: 9999;
+}
+
+#chatHeader {
+    background: #5a3d82;
+    color: white;
+    padding: 10px;
+    font-weight: bold;
+}
+
+#chatMessages {
+    flex: 1;
+    padding: 10px;
+    overflow-y: auto;
+}
+
+#chatInputBox {
+    display: flex;
+    border-top: 1px solid #ddd;
+}
+
+#chatInput {
+    flex: 1;
+    padding: 10px;
+    border: none;
+}
+
+#chatInputBox button {
+    background: #5a3d82;
+    color: white;
+    border: none;
+    padding: 10px;
+}
