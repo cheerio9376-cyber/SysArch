@@ -117,14 +117,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <label class="form-label">ID Number</label>
                             <div class="input-group">
                                 <span class="input-group-text bg-white"><i class="bi bi-person" style="color:#5a3d82;"></i></span>
-                                <input type="text" name="student_id" class="form-control" placeholder="e.g. 2021-00001" value="<?= htmlspecialchars($_POST['student_id'] ?? '') ?>" required>
+                                <input type="text" name="student_id" class="form-control" placeholder="" value="<?= htmlspecialchars($_POST['student_id'] ?? '') ?>" required>
                             </div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Password</label>
                             <div class="input-group">
                                 <span class="input-group-text bg-white"><i class="bi bi-lock" style="color:#5a3d82;"></i></span>
-                                <input type="password" name="password" id="passwordField" class="form-control" placeholder="Enter password" required>
+                                <input type="password" name="password" id="passwordField" class="form-control" placeholder="" required>
                                 <button type="button" class="input-group-text bg-white border-start-0" onclick="togglePw()">
                                     <i class="bi bi-eye" id="eyeIcon" style="color:#5a3d82;"></i>
                                 </button>
