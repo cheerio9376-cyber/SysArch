@@ -5,7 +5,6 @@ require 'includes/admin_auth.php';
 $current_page = 'pc_reservations';
 
 // ── Auto-expire past PENDING reservations only ────────────
-// Approved reservations are NOT auto-expired — admin or student must manage them.
 $conn->query("
     UPDATE pc_reservations
     SET status='expired'
@@ -15,10 +14,11 @@ $conn->query("
         OR (reservation_date = CURDATE() AND end_time < CURTIME())
       )
 ");
+
 // ── Handle Approve ─────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $posted_action = $_POST['action'] ?? '';
-   $res_id = (int)($_POST['reservation_id'] ?? 0);
+    $res_id = (int)($_POST['reservation_id'] ?? 0);
 
     if ($posted_action === 'approve' && $res_id > 0) {
         $upd = $conn->prepare("UPDATE pc_reservations SET status='approved', decline_reason=NULL WHERE id=?");
@@ -33,7 +33,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit();
     }
 
-    // ── Handle Reject / Decline (with optional reason) ────
     if ($posted_action === 'reject' && $res_id > 0) {
         $reason = trim($_POST['decline_reason'] ?? '');
         $upd = $conn->prepare("UPDATE pc_reservations SET status='rejected', decline_reason=? WHERE id=?");
@@ -48,7 +47,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit();
     }
 
-    // ── Handle generic status update (cancel approved, etc.) ──
     if ($posted_action === 'update_status' && $res_id > 0) {
         $new_status = $_POST['status'] ?? '';
         $allowed    = ['approved', 'rejected', 'expired', 'cancelled'];
@@ -102,7 +100,6 @@ if ($filter_status) { $where[] = "r.status=?";           $params[] = $filter_sta
 
 $whereSQL = $where ? 'WHERE ' . implode(' AND ', $where) : '';
 
-// Count
 $cnt_q = $conn->prepare(
     "SELECT COUNT(*) FROM pc_reservations r JOIN students s ON r.student_id=s.student_id $whereSQL"
 );
@@ -111,7 +108,6 @@ $cnt_q->execute();
 $total       = (int)$cnt_q->get_result()->fetch_row()[0];
 $total_pages = max(1, (int)ceil($total / $per_page));
 
-// Rows
 $all_params = array_merge($params, [$per_page, $offset]);
 $all_types  = $types . 'ii';
 $rq = $conn->prepare("
@@ -129,7 +125,6 @@ $rq->bind_param($all_types, ...$all_params);
 $rq->execute();
 $records = $rq->get_result()->fetch_all(MYSQLI_ASSOC);
 
-// PC grid
 $selected_lab  = $filter_lab  ?: 'Lab 524';
 $selected_date = $filter_date ?: date('Y-m-d');
 $pc_stmt = $conn->prepare("
@@ -181,6 +176,86 @@ $labs = ['Lab 524', 'Lab 526', 'Lab 528', 'Lab 530', 'Mac Lab'];
         .pending-row { background:#fff8e1!important; }
         .pending-row:hover { background:#fff3cd!important; }
         .decline-reason-badge { font-size:.7rem;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:inline-block;vertical-align:middle; }
+
+        /* ── PC Grid ── */
+        .pc-grid-admin { display:grid;grid-template-columns:repeat(auto-fill,minmax(68px,1fr));gap:5px; }
+        .pca-btn { border-radius:7px;padding:5px 4px;text-align:center;font-size:.7rem;border:2px solid transparent;transition:all .15s; }
+        .pca-available    { background:#e8f5e9;color:#1b5e20;border-color:#a5d6a7; }
+        .pca-pending      { background:#fff8e1;color:#b8860b;border-color:#ffe082; }
+        .pca-approved     { background:#e8f5e9;color:#1b5e20;border-color:#66bb6a; }
+        .pca-inuse        { background:#e3f2fd;color:#0d47a1;border-color:#90caf9; }
+        .pca-maintenance  { background:#f0f0f0;color:#757575;border-color:#bdbdbd; }
+        .pca-num  { display:block;font-size:.82rem;font-weight:700; }
+        .pca-time { display:block;font-size:.6rem;line-height:1.2; }
+        .pca-leg  { display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:4px;vertical-align:middle; }
+
+        /* available PCs are clickable */
+        .pca-available, .pca-maintenance {
+            cursor: pointer;
+        }
+        .pca-available:hover {
+            background: #c8e6c9;
+            border-color: #66bb6a;
+            transform: scale(1.06);
+        }
+        .pca-maintenance:hover {
+            background: #e0e0e0;
+            border-color: #9e9e9e;
+            transform: scale(1.06);
+        }
+
+        /* ── PC Popup ── */
+        .pc-popup {
+            position: fixed;
+            z-index: 9999;
+            background: #fff;
+            border: 1px solid #d6c9f0;
+            border-radius: 12px;
+            box-shadow: 0 8px 28px rgba(90,61,130,.18);
+            padding: 14px 16px 12px;
+            min-width: 200px;
+            animation: popIn .15s ease;
+        }
+        @keyframes popIn {
+            from { opacity:0; transform:scale(.92) translateY(-4px); }
+            to   { opacity:1; transform:scale(1)   translateY(0);    }
+        }
+        .pc-popup-title {
+            font-size: .78rem;
+            font-weight: 700;
+            color: #5a3d82;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #ede7f6;
+            padding-bottom: 7px;
+        }
+        .pc-popup-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            padding: 7px 10px;
+            border-radius: 8px;
+            border: none;
+            background: transparent;
+            font-size: .8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background .13s;
+            text-align: left;
+        }
+        .pc-popup-btn:hover { background: #f4efff; color: #5a3d82; }
+        .pc-popup-btn.maintenance { color: #757575; }
+        .pc-popup-btn.maintenance:hover { background: #f5f5f5; color: #424242; }
+        .pc-popup-btn.restore { color: #27ae60; }
+        .pc-popup-btn.restore:hover { background: #e8f5e9; color: #1b5e20; }
+        .pc-popup-close {
+            position: absolute;
+            top: 8px; right: 10px;
+            background: none; border: none;
+            font-size: .85rem; color: #aaa; cursor: pointer;
+            line-height: 1;
+        }
+        .pc-popup-close:hover { color: #555; }
     </style>
 </head>
 <body>
@@ -205,9 +280,12 @@ $labs = ['Lab 524', 'Lab 526', 'Lab 528', 'Lab 530', 'Mac Lab'];
     <!-- ── PC Grid ── -->
     <div class="card-ccs p-4 mb-4">
         <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-            <h5 class="fw-bold mb-0" style="color:var(--purple);">
-                <i class="bi bi-grid-3x3-gap me-2"></i>PC Map — <?= htmlspecialchars($selected_lab) ?>
-            </h5>
+            <div>
+                <h5 class="fw-bold mb-0" style="color:var(--purple);">
+                    <i class="bi bi-grid-3x3-gap me-2"></i>PC Map — <?= htmlspecialchars($selected_lab) ?>
+                </h5>
+                <small class="text-muted">Click an <strong>available</strong> PC to mark it for maintenance.</small>
+            </div>
             <form method="GET" class="d-flex gap-2 align-items-center flex-wrap">
                 <select name="lab" class="form-select form-select-sm" onchange="this.form.submit()">
                     <?php foreach ($labs as $l): ?>
@@ -219,16 +297,22 @@ $labs = ['Lab 524', 'Lab 526', 'Lab 528', 'Lab 530', 'Mac Lab'];
                 <input type="hidden" name="status" value="<?= htmlspecialchars($filter_status) ?>">
             </form>
         </div>
-        <div class="pc-grid-admin">
+
+        <div class="pc-grid-admin" id="pcGrid">
             <?php for ($pc = 1; $pc <= 50; $pc++):
                 $r = $reserved_pcs[$pc] ?? null;
-                if (!$r)                           { $cls = 'pca-available'; $title = "PC $pc — Available"; }
-                elseif ($r['status']==='pending')  { $cls = 'pca-pending';   $title = "PC $pc — Pending ({$r['student_id']})"; }
-                elseif ($r['status']==='approved') { $cls = 'pca-approved';  $title = "PC $pc — Approved ({$r['student_id']}) {$r['start_time']}–{$r['end_time']}"; }
-                elseif ($r['status']==='in_use')   { $cls = 'pca-inuse';     $title = "PC $pc — In Use ({$r['student_id']})"; }
-                else                               { $cls = 'pca-available'; $title = "PC $pc"; }
+                if (!$r)                           { $cls = 'pca-available'; $title = "PC $pc — Available"; $clickable = true; }
+                elseif ($r['status']==='pending')  { $cls = 'pca-pending';   $title = "PC $pc — Pending ({$r['student_id']})"; $clickable = false; }
+                elseif ($r['status']==='approved') { $cls = 'pca-approved';  $title = "PC $pc — Approved ({$r['student_id']}) {$r['start_time']}–{$r['end_time']}"; $clickable = false; }
+                elseif ($r['status']==='in_use')   { $cls = 'pca-inuse';     $title = "PC $pc — In Use ({$r['student_id']})"; $clickable = false; }
+                else                               { $cls = 'pca-available'; $title = "PC $pc"; $clickable = true; }
             ?>
-                <div class="pca-btn <?= $cls ?>" title="<?= htmlspecialchars($title) ?>">
+                <div class="pca-btn <?= $cls ?>"
+                     id="pc-<?= $pc ?>"
+                     data-pc="<?= $pc ?>"
+                     data-base-status="<?= $cls ?>"
+                     title="<?= htmlspecialchars($title) ?>"
+                     <?= $clickable ? 'onclick="openPcPopup(event, this)"' : '' ?>>
                     <span class="pca-num"><?= $pc ?></span>
                     <?php if ($r): ?>
                         <span class="pca-time"><?= substr($r['start_time'],0,5) ?>–<?= substr($r['end_time'] ?? '',0,5) ?></span>
@@ -236,11 +320,13 @@ $labs = ['Lab 524', 'Lab 526', 'Lab 528', 'Lab 530', 'Mac Lab'];
                 </div>
             <?php endfor; ?>
         </div>
-        <div class="mt-2 small text-muted d-flex gap-3 flex-wrap">
-            <span><span class="pca-leg pca-available"></span> Available (<?= 50 - count($reserved_pcs) ?>)</span>
+
+        <div class="mt-3 small text-muted d-flex gap-3 flex-wrap align-items-center">
+            <span><span class="pca-leg pca-available"></span> Available (<span id="countAvailable"><?= 50 - count($reserved_pcs) ?></span>)</span>
             <span><span class="pca-leg pca-pending"></span> Pending (<?= count(array_filter($reserved_pcs, fn($r)=>$r['status']==='pending')) ?>)</span>
             <span><span class="pca-leg pca-approved"></span> Approved (<?= count(array_filter($reserved_pcs, fn($r)=>$r['status']==='approved')) ?>)</span>
             <span><span class="pca-leg pca-inuse"></span> In Use (<?= count(array_filter($reserved_pcs, fn($r)=>$r['status']==='in_use')) ?>)</span>
+            <span><span class="pca-leg pca-maintenance"></span> Maintenance (<span id="countMaintenance">0</span>)</span>
         </div>
     </div>
 
@@ -343,7 +429,6 @@ $labs = ['Lab 524', 'Lab 526', 'Lab 528', 'Lab 530', 'Mac Lab'];
                                     <i class="bi bi-exclamation-circle ms-1"></i>
                                 <?php endif; ?>
                             </span>
-                            <!-- Show decline reason snippet -->
                             <?php if ($r['status'] === 'rejected' && !empty($r['decline_reason'])): ?>
                                 <div class="mt-1">
                                     <span class="text-danger decline-reason-badge"
@@ -356,17 +441,14 @@ $labs = ['Lab 524', 'Lab 526', 'Lab 528', 'Lab 530', 'Mac Lab'];
                         <td>
                             <div class="d-flex gap-1 flex-wrap">
                                 <?php if ($is_pending): ?>
-                                    <!-- ✅ APPROVE -->
                                     <form method="POST" class="d-inline">
                                         <input type="hidden" name="action" value="approve">
-                                      <input type="hidden" name="reservation_id" value="<?= $r['id'] ?>">
+                                        <input type="hidden" name="reservation_id" value="<?= $r['id'] ?>">
                                         <button type="submit" class="btn btn-sm btn-approve px-2 py-0"
                                                 onclick="return confirm('Approve reservation #<?= $r['id'] ?> for <?= htmlspecialchars(addslashes($r['student_name'])) ?>?')">
                                             <i class="bi bi-check-lg"></i> Approve
                                         </button>
                                     </form>
-
-                                    <!-- ✅ DECLINE (opens modal with reason field) -->
                                     <button type="button" class="btn btn-sm btn-reject px-2 py-0"
                                             data-bs-toggle="modal" data-bs-target="#declineModal"
                                             data-id="<?= $r['id'] ?>"
@@ -374,12 +456,10 @@ $labs = ['Lab 524', 'Lab 526', 'Lab 528', 'Lab 530', 'Mac Lab'];
                                             data-pc="PC <?= $r['pc_number'] ?> – <?= htmlspecialchars($r['lab']) ?>">
                                         <i class="bi bi-x-lg"></i> Decline
                                     </button>
-
                                 <?php elseif ($r['status'] === 'approved'): ?>
-                                    <!-- Cancel an approved reservation -->
                                     <form method="POST" class="d-inline">
                                         <input type="hidden" name="action" value="update_status">
-                                    <input type="hidden" name="reservation_id" value="<?= $r['id'] ?>">
+                                        <input type="hidden" name="reservation_id" value="<?= $r['id'] ?>">
                                         <input type="hidden" name="status" value="cancelled">
                                         <button type="submit" class="btn btn-sm btn-outline-warning py-0 px-2"
                                                 onclick="return confirm('Cancel this approved reservation?')"
@@ -388,8 +468,6 @@ $labs = ['Lab 524', 'Lab 526', 'Lab 528', 'Lab 530', 'Mac Lab'];
                                         </button>
                                     </form>
                                 <?php endif; ?>
-
-                                <!-- DELETE -->
                                 <a href="pc_reservations.php?delete=<?= $r['id'] ?>"
                                    class="btn btn-sm btn-outline-danger py-0 px-2"
                                    onclick="return confirm('Permanently delete reservation #<?= $r['id'] ?>?')"
@@ -432,7 +510,7 @@ $labs = ['Lab 524', 'Lab 526', 'Lab 528', 'Lab 530', 'Mac Lab'];
 </div></div>
 
 <!-- ══════════════════════════════════════════
-     DECLINE MODAL — admin enters reason here
+     DECLINE MODAL
 ════════════════════════════════════════════ -->
 <div class="modal fade" id="declineModal" tabindex="-1" aria-labelledby="declineModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -440,7 +518,7 @@ $labs = ['Lab 524', 'Lab 526', 'Lab 528', 'Lab 530', 'Mac Lab'];
             <form method="POST" id="declineForm">
                 <input type="hidden" name="action" value="reject">
                 <input type="hidden" name="reservation_id" id="declineResId">
-                
+
                 <div class="modal-header border-0 pb-1">
                     <h5 class="modal-title text-danger" id="declineModalLabel">
                         <i class="bi bi-x-circle me-2"></i>Decline Reservation
@@ -450,14 +528,11 @@ $labs = ['Lab 524', 'Lab 526', 'Lab 528', 'Lab 530', 'Mac Lab'];
 
                 <div class="modal-body">
                     <p class="text-muted mb-3 small" id="declineModalSubtitle"></p>
-
                     <label class="form-label fw-600">Reason for declining <span class="text-muted fw-normal">(optional but recommended)</span></label>
                     <textarea name="decline_reason" id="declineReason" class="form-control" rows="3"
                               maxlength="300"
                               placeholder="e.g. PC is reserved for a class, please choose another time slot…"></textarea>
                     <div class="form-text">This reason will be visible to the student on their reservation page.</div>
-
-                    <!-- Quick reason shortcuts -->
                     <div class="mt-2 d-flex flex-wrap gap-1">
                         <span class="text-muted small me-1">Quick:</span>
                         <?php
@@ -489,45 +564,131 @@ $labs = ['Lab 524', 'Lab 526', 'Lab 528', 'Lab 530', 'Mac Lab'];
     </div>
 </div>
 
+<!-- ── PC Popup (injected by JS) ── -->
+<div class="pc-popup d-none" id="pcPopup">
+    <button class="pc-popup-close" onclick="closePopup()" title="Close">&times;</button>
+    <div class="pc-popup-title" id="pcPopupTitle">PC 1</div>
+    <div id="pcPopupActions"></div>
+</div>
+
 <footer class="adm-footer">
     <small>&copy; <?= date('Y') ?> College of Computer Studies &bull; CCS Sit-In Monitoring System</small>
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-// Sidebar toggle
+// ── Sidebar toggle ──
 document.getElementById('sidebarToggle')?.addEventListener('click', () => {
     document.getElementById('adminSidebar').classList.toggle('show');
 });
 
-// Decline Modal — populate fields when opened
+// ── Decline Modal ──
 const declineModal = document.getElementById('declineModal');
 declineModal.addEventListener('show.bs.modal', function(e) {
     const btn = e.relatedTarget;
     document.getElementById('declineResId').value          = btn.dataset.id;
     document.getElementById('declineModalSubtitle').textContent =
         `Student: ${btn.dataset.student} | ${btn.dataset.pc}`;
-    document.getElementById('declineReason').value = ''; // reset each time
+    document.getElementById('declineReason').value = '';
 });
-
-// Quick reason buttons
 document.querySelectorAll('.quick-reason').forEach(btn => {
     btn.addEventListener('click', function() {
         document.getElementById('declineReason').value = this.dataset.reason;
     });
 });
-</script>
 
-<style>
-.pc-grid-admin { display:grid;grid-template-columns:repeat(auto-fill,minmax(68px,1fr));gap:5px; }
-.pca-btn { border-radius:7px;padding:5px 4px;text-align:center;font-size:.7rem;border:2px solid transparent;transition:all .15s; }
-.pca-available { background:#e8f5e9;color:#1b5e20;border-color:#a5d6a7; }
-.pca-pending   { background:#fff8e1;color:#b8860b;border-color:#ffe082; }
-.pca-approved  { background:#e8f5e9;color:#1b5e20;border-color:#66bb6a; }
-.pca-inuse     { background:#e3f2fd;color:#0d47a1;border-color:#90caf9; }
-.pca-num  { display:block;font-size:.82rem;font-weight:700; }
-.pca-time { display:block;font-size:.6rem;line-height:1.2; }
-.pca-leg  { display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:4px;vertical-align:middle; }
-</style>
+// ══════════════════════════════════════════════
+// PC MAP — MAINTENANCE TOGGLE
+// ══════════════════════════════════════════════
+let _maintenancePCs = new Set(); // track which PCs are in maintenance this session
+let _activePopupEl  = null;
+
+function openPcPopup(event, el) {
+    event.stopPropagation();
+    const pcNum      = parseInt(el.dataset.pc);
+    const isMaint    = _maintenancePCs.has(pcNum);
+    const popup      = document.getElementById('pcPopup');
+    const actionsDiv = document.getElementById('pcPopupActions');
+
+    document.getElementById('pcPopupTitle').innerHTML =
+        '<i class="bi bi-pc-display me-2"></i>PC ' + pcNum;
+
+    if (isMaint) {
+        actionsDiv.innerHTML = `
+            <button class="pc-popup-btn restore" onclick="setPcStatus(${pcNum}, 'available'); closePopup();">
+                <i class="bi bi-check-circle"></i> Mark as Available
+            </button>`;
+    } else {
+        actionsDiv.innerHTML = `
+            <button class="pc-popup-btn maintenance" onclick="setPcStatus(${pcNum}, 'maintenance'); closePopup();">
+                <i class="bi bi-tools"></i> Mark as Maintenance
+            </button>`;
+    }
+
+    // Position popup near the clicked PC tile
+    const rect = el.getBoundingClientRect();
+    popup.classList.remove('d-none');
+
+    // Keep popup within viewport
+    const popW = 210;
+    const popH = popup.offsetHeight || 100;
+    let left = rect.left + window.scrollX;
+    let top  = rect.bottom + window.scrollY + 6;
+
+    if (left + popW > window.innerWidth - 10) {
+        left = window.innerWidth - popW - 10;
+    }
+    if (top + popH > window.innerHeight + window.scrollY - 10) {
+        top = rect.top + window.scrollY - popH - 6;
+    }
+
+    popup.style.left = left + 'px';
+    popup.style.top  = top  + 'px';
+    _activePopupEl   = el;
+}
+
+function closePopup() {
+    document.getElementById('pcPopup').classList.add('d-none');
+    _activePopupEl = null;
+}
+
+function setPcStatus(pcNum, status) {
+    const el = document.getElementById('pc-' + pcNum);
+    if (!el) return;
+
+    if (status === 'maintenance') {
+        _maintenancePCs.add(pcNum);
+        el.className = 'pca-btn pca-maintenance';
+        el.title     = 'PC ' + pcNum + ' — Maintenance';
+        // Keep clickable so admin can restore it
+        el.onclick = (e) => openPcPopup(e, el);
+    } else {
+        _maintenancePCs.delete(pcNum);
+        el.className = 'pca-btn pca-available';
+        el.title     = 'PC ' + pcNum + ' — Available';
+        el.onclick   = (e) => openPcPopup(e, el);
+    }
+
+    updateLegendCounts();
+}
+
+function updateLegendCounts() {
+    const maintCount = _maintenancePCs.size;
+    const totalAvailablePCs = document.querySelectorAll('.pca-available').length;
+    document.getElementById('countAvailable').textContent    = totalAvailablePCs;
+    document.getElementById('countMaintenance').textContent  = maintCount;
+}
+
+// Close popup when clicking outside
+document.addEventListener('click', function(e) {
+    const popup = document.getElementById('pcPopup');
+    if (!popup.classList.contains('d-none') && !popup.contains(e.target)) {
+        closePopup();
+    }
+});
+
+// Close popup on scroll
+window.addEventListener('scroll', closePopup, { passive: true });
+</script>
 </body>
 </html>
