@@ -209,9 +209,19 @@ $active = $conn->query("
                         Active Sessions
                         <span class="badge ms-2" style="background:#5a3d82;"><?= count($active) ?></span>
                     </h5>
-                    <button class="btn btn-sm btn-outline-secondary" onclick="location.reload()">
-                        <i class="bi bi-arrow-clockwise me-1"></i>Refresh
-                    </button>
+                    <div class="d-flex gap-2">
+                        <?php if (!empty($active)): ?>
+                        <button class="btn btn-sm btn-danger d-flex align-items-center gap-1"
+                                onclick="openResetAllModal()"
+                                title="End all active sessions">
+                            <i class="bi bi-stop-circle-fill"></i>
+                            <span>Reset All</span>
+                        </button>
+                        <?php endif; ?>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="location.reload()">
+                            <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+                        </button>
+                    </div>
                 </div>
 
                 <?php if (empty($active)): ?>
@@ -371,6 +381,65 @@ $active = $conn->query("
   </div>
 </div>
 
+<!-- ═══════════════════════════════════════════════
+     RESET ALL SESSIONS MODAL
+     ═══════════════════════════════════════════════ -->
+<div class="modal fade" id="resetAllModal" tabindex="-1" aria-labelledby="resetAllLabel" aria-modal="true" role="dialog">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0" style="border-radius:14px;overflow:hidden;">
+
+      <div class="modal-header py-3" style="background:#dc3545;">
+        <h5 class="modal-title text-white fw-bold" id="resetAllLabel">
+          <i class="bi bi-stop-circle-fill me-2"></i>Reset All Sessions
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body p-4">
+
+        <!-- Warning banner -->
+        <div class="rounded-3 px-3 py-3 mb-4 d-flex align-items-start gap-3"
+             style="background:#fff5f5;border:1px solid #f5c6cb;">
+          <i class="bi bi-exclamation-triangle-fill fs-4 mt-1" style="color:#dc3545;flex-shrink:0;"></i>
+          <div>
+            <div class="fw-bold mb-1" style="color:#842029;">This will end all active sessions.</div>
+            <div class="small" style="color:#6c3c42;">
+              All <strong><?= count($active) ?></strong> active sit-in<?= count($active) !== 1 ? 's' : '' ?> will be marked as
+              <strong>incomplete</strong> and their session times will be recorded immediately.
+              This action <strong>cannot be undone</strong>.
+            </div>
+          </div>
+        </div>
+
+        <!-- Confirmation checkbox -->
+        <div class="form-check mb-4 ps-0 d-flex align-items-center gap-2">
+          <input class="form-check-input mt-0" type="checkbox" id="resetConfirmCheck"
+                 onchange="document.getElementById('confirmResetBtn').disabled = !this.checked;"
+                 style="width:1.1rem;height:1.1rem;cursor:pointer;accent-color:#dc3545;">
+          <label class="form-check-label small fw-bold" for="resetConfirmCheck" style="cursor:pointer;color:#555;">
+            Yes, I understand — end all <strong><?= count($active) ?></strong> active session<?= count($active) !== 1 ? 's' : '' ?> now.
+          </label>
+        </div>
+
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-outline-secondary flex-grow-1 py-2 fw-bold"
+                  data-bs-dismiss="modal">
+            <i class="bi bi-x me-1"></i>Cancel
+          </button>
+          <button type="button" class="btn flex-grow-1 py-2 fw-bold"
+                  id="confirmResetBtn"
+                  disabled
+                  style="background:#dc3545;color:#fff;border:none;border-radius:8px;"
+                  onclick="confirmResetAll()">
+            <i class="bi bi-stop-circle-fill me-2"></i>Reset All Sessions
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
 <footer class="adm-footer">
     <small>&copy; <?= date('Y') ?> College of Computer Studies &bull; CCS Sit-In Monitoring System</small>
 </footer>
@@ -504,7 +573,6 @@ function confirmEndSession() {
     const points = parseInt(document.getElementById('endPoints').value) || 0;
     const reason = document.getElementById('endReason').value.trim();
 
-    // If points are entered, reason is required
     if (points > 0 && reason.length < 3) {
         document.getElementById('endReason').style.borderColor = '#dc3545';
         document.getElementById('endReason').focus();
@@ -545,6 +613,48 @@ function confirmEndSession() {
         alert('Network error: ' + err);
         btn.disabled  = false;
         btn.innerHTML = '<i class="bi bi-check2 me-2"></i>Confirm & End Session';
+    });
+}
+
+// ════════════════════════════════════════════════════
+// RESET ALL SESSIONS MODAL
+// ════════════════════════════════════════════════════
+function openResetAllModal() {
+    // Reset the checkbox and button state every time
+    const chk = document.getElementById('resetConfirmCheck');
+    const btn = document.getElementById('confirmResetBtn');
+    chk.checked  = false;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-stop-circle-fill me-2"></i>Reset All Sessions';
+
+    new bootstrap.Modal(document.getElementById('resetAllModal')).show();
+}
+
+function confirmResetAll() {
+    const btn = document.getElementById('confirmResetBtn');
+    btn.disabled  = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Resetting…';
+
+    fetch('../api/admin_sitin.php', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ action: 'reset_all' }),
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.success) {
+            bootstrap.Modal.getInstance(document.getElementById('resetAllModal')).hide();
+            location.reload();
+        } else {
+            alert(d.error || 'Failed to reset sessions.');
+            btn.disabled  = false;
+            btn.innerHTML = '<i class="bi bi-stop-circle-fill me-2"></i>Reset All Sessions';
+        }
+    })
+    .catch(err => {
+        alert('Network error: ' + err);
+        btn.disabled  = false;
+        btn.innerHTML = '<i class="bi bi-stop-circle-fill me-2"></i>Reset All Sessions';
     });
 }
 </script>
